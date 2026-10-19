@@ -66,6 +66,6 @@ void main(void)
             printk("Falha ao apagar LEDs: %d\n", ret);
             return;
         }
-        k_msleep(500);
+        k_msleep(350);
     }
 }
