@@ -5,37 +5,67 @@
 #define SLEEP_TIME_MS 500
 
 // Define o LED usando Device Tree
-#define LED0_NODE DT_ALIAS(led0)
+#define GREEN_LED_NODE DT_ALIAS(led0)
+#define RED_LED_NODE DT_ALIAS(led1)
 
 // Verifica se o LED está definido no Device Tree
-#if DT_NODE_HAS_STATUS(LED0_NODE, okay)
-static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
-#else
-#error "Unsupported board: led0 devicetree alias is not defined"
+#if !DT_NODE_HAS_STATUS(RED_LED_NODE, okay) || \
+    !DT_NODE_HAS_STATUS(GREEN_LED_NODE, okay) 
+   
+#error "Os aliases dos LEDs RGB nao estao definidos no Device Tree"
 #endif
+
+static const struct gpio_dt_spec red_led =
+    GPIO_DT_SPEC_GET(RED_LED_NODE, gpios);
+static const struct gpio_dt_spec green_led =
+    GPIO_DT_SPEC_GET(GREEN_LED_NODE, gpios);
+
+static const struct gpio_dt_spec *const leds[] = {
+    &red_led,
+    &green_led,
+};
+
+static int set_rgb (int red, int green){
+    int ret = gpio_pin_set_dt(&red_led, red);
+    if (ret < 0){
+        return ret;
+    }
+
+    ret = gpio_pin_set_dt(&green_led, green);
+    if(ret < 0){
+        return ret;
+    }
+};
+
 
 void main(void)
 {
-    int ret;
+  for (size_t i = 0; i < ARRAY_SIZE(leds); i++) {
+        if (!gpio_is_ready_dt(leds[i])) {
+            printk("Controlador do LED nao esta pronto\n");
+            return;
+        }
 
-    // Verifica se o device está pronto
-    if (!gpio_is_ready_dt(&led)) {
-        printk("Error: LED device %s is not ready\n", led.port->name);
-        return;
+        int ret = gpio_pin_configure_dt(leds[i], GPIO_OUTPUT_INACTIVE);
+        if (ret < 0) {
+            printk("Falha ao configurar LED: %d\n", ret);
+            return;
+        }
     }
 
-    // Configura o pino como saída
-    ret = gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
-    if (ret < 0) {
-        printk("Error %d: failed to configure LED pin\n", ret);
-        return;
-    }
+     while (1) {
+        int ret = set_rgb(1, 0); /* vermelho + azul = magenta */
+        if (ret < 0) {
+            printk("Falha ao acender LEDs: %d\n", ret);
+            return;
+        }
+        k_msleep(1000);
 
-    printk("LED blinking on %s pin %d\n", led.port->name, led.pin);
-
-    while (1) {
-        // Toggle do LED usando a nova API
-        gpio_pin_toggle_dt(&led);
-        k_msleep(SLEEP_TIME_MS);
+        ret = set_rgb(0, 1); /* apaga todos */
+        if (ret < 0) {
+            printk("Falha ao apagar LEDs: %d\n", ret);
+            return;
+        }
+        k_msleep(500);
     }
 }
