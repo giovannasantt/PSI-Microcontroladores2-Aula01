@@ -6,7 +6,7 @@
 #define PRIORITY   5
 
 #define PERIODO_A_MS 1000
-#define PERIODO_B_MS 500   // depois: 1000 / 500, e o desafio 1000 / 350
+#define PERIODO_B_MS 350   // depois: 1000 / 500, e o desafio 1000 / 350
 
 #define LED0_NODE DT_ALIAS(led0)
 #define LED1_NODE DT_ALIAS(led1)
